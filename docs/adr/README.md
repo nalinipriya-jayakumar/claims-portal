@@ -1,7 +1,7 @@
 # Architecture decision records
 
 Each record states the context, the decision, the alternatives rejected and what the decision costs.
-They expand section 8 of `../Claim_Portal_Architecture.pdf`; 0009 and 0010 were added during implementation.
+They expand section 8 of `Claim_Portal_Architecture.pdf` (supplied separately); 0009 and 0010 were added during implementation.
 
 | ADR | Decision | Status |
 |---|---|---|

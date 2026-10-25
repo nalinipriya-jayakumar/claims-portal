@@ -2,7 +2,7 @@
 
 This page describes the solution as built. The reasoning behind it (drivers, the six styles that
 were compared, scoring) is in `Claim_Portal_Architecture.pdf`, the requirements in
-`Claim_Portal_Requirements_Analysis.pdf`, and individual decisions in [`adr/`](adr/README.md).
+`Claim_Portal_Requirements_Analysis.pdf` (both supplied separately), and individual decisions in [`adr/`](adr/README.md).
 
 ## In one paragraph
 

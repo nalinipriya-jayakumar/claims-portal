@@ -12,7 +12,7 @@ Built for the Red River Mutual Software Developer III technical challenge.
 | Stack | Java 21, Spring Boot 3.5, React 19 + TypeScript, PostgreSQL 16, RabbitMQ 4.1, Mailpit, Docker Compose |
 | Architecture | [docs/architecture.md](docs/architecture.md) · decisions in [docs/adr](docs/adr/README.md) |
 | API contract | [claims-api/src/main/resources/openapi/claims-api.yaml](claims-api/src/main/resources/openapi/claims-api.yaml): the source of truth; server interface, models and portal types are generated from it ([ADR-0010](docs/adr/0010-contract-driven-api.md)) |
-| Requirements | [docs/Claim_Portal_Requirements_Analysis.pdf](docs/Claim_Portal_Requirements_Analysis.pdf) (FR, NFR and AC numbers used below) |
+| Requirements | `Claim_Portal_Requirements_Analysis.pdf`, supplied separately (FR, NFR and AC numbers used below) |
 
 ## Quick start
 

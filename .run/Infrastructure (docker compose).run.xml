@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Infrastructure (docker compose)" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
+    <deployment type="docker-compose.yml">
+      <settings>
+        <option name="services">
+          <list>
+            <option value="postgres" />
+            <option value="rabbitmq" />
+            <option value="mailpit" />
+          </list>
+        </option>
+        <option name="sourceFilePath" value="docker-compose.yml" />
+      </settings>
+    </deployment>
+    <method v="2" />
+  </configuration>
+</component>

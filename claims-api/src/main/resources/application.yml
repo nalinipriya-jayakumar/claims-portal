@@ -1,0 +1,81 @@
+spring:
+  application:
+    name: claims-api
+  jackson:
+    deserialization:
+      # Unknown JSON fields are rejected with UNKNOWN_FIELD instead of silently dropped.
+      fail-on-unknown-properties: true
+  # Defaults match docker-compose.yml for local runs; containers and CI override them through
+  # environment variables. The password default is a local-only value, never a real secret.
+  datasource:
+    url: jdbc:postgresql://${CLAIMS_DB_HOST:localhost}:${CLAIMS_DB_PORT:5432}/${CLAIMS_DB_NAME:claims}
+    username: ${CLAIMS_DB_USER:claims_app}
+    password: ${CLAIMS_DB_PASSWORD:local-dev-only}
+  jpa:
+    # Flyway owns the schema; Hibernate only checks that the mappings match it.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:claims}
+    password: ${RABBITMQ_PASSWORD:local-dev-only}
+    # Confirms tell the relay the broker has the message; returns tell it no queue was bound.
+    # Together they decide whether an outbox row may be marked published.
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+
+server:
+  port: ${CLAIMS_API_PORT:8080}
+  # Never leak internals in error responses (NFR-07).
+  error:
+    include-stacktrace: never
+    include-message: never
+
+claims:
+  rules:
+    zone: America/Winnipeg
+    date-of-loss-max-age-days: 365
+  api:
+    max-request-bytes: 65536
+  outbox:
+    relay:
+      scheduling-enabled: true
+      interval: 1s
+      batch-size: 50
+  messaging:
+    confirm-timeout: 5s
+
+logging:
+  pattern:
+    # Human-readable locally, with the correlation ID on every line; the docker profile switches to JSON.
+    level: "%5p [%X{correlationId:-}]"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Prometheus and metrics are for operators; the Nginx edge never proxies /actuator.
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        # Ready means "can accept claims", which needs the database but not the broker:
+        # while RabbitMQ is down, claims still commit and the outbox catches up later.
+        readiness:
+          include: readinessState,db
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Claims API for the home insurance claim portal

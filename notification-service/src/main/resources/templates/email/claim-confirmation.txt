@@ -1,0 +1,18 @@
+[# th:if="${firstName != null}"]Hello [(${firstName})],[/][# th:unless="${firstName != null}"]Hello,[/]
+
+We have received your home insurance claim.
+
+Your claim number: [(${claimNumber})]
+
+Type of loss: [(${lossType})]
+Date of loss: [(${dateOfLoss})]
+
+What happens next
+1. An adjuster will contact you within two business days.
+2. If it is safe to do so, take photos of the damage and keep any receipts for emergency repairs.
+3. Quote your claim number whenever you contact us.
+
+Thank you,
+Red River Mutual Claims
+
+This is an automated message; please do not reply to it.

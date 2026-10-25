@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${subject}">We received your claim</title>
+</head>
+<!-- th:text escapes every value, so customer-supplied text cannot inject HTML. -->
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:Arial,Helvetica,sans-serif;color:#1f2933;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="max-width:600px;width:100%;background:#ffffff;border-radius:6px;">
+                <tr>
+                    <td style="background:#1f3a5f;color:#ffffff;padding:20px 32px;font-size:18px;font-weight:bold;border-radius:6px 6px 0 0;">
+                        Red River Mutual
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:32px;font-size:16px;line-height:24px;">
+                        <p style="margin:0 0 16px;">
+                            <span th:if="${firstName != null}" th:text="|Hello ${firstName},|">Hello Jane,</span>
+                            <span th:unless="${firstName != null}">Hello,</span>
+                        </p>
+                        <p style="margin:0 0 24px;">We have received your home insurance claim.</p>
+
+                        <p style="margin:0 0 4px;font-size:14px;color:#52606d;">Your claim number</p>
+                        <p style="margin:0 0 24px;font-size:24px;font-weight:bold;letter-spacing:1px;"
+                           th:text="${claimNumber}">CLM-2026-000123</p>
+
+                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;font-size:15px;">
+                            <tr>
+                                <td style="padding:4px 16px 4px 0;color:#52606d;">Type of loss</td>
+                                <td style="padding:4px 0;" th:text="${lossType}">Water damage</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px 16px 4px 0;color:#52606d;">Date of loss</td>
+                                <td style="padding:4px 0;" th:text="${dateOfLoss}">October 15, 2026</td>
+                            </tr>
+                        </table>
+
+                        <p style="margin:0 0 8px;font-weight:bold;">What happens next</p>
+                        <ol style="margin:0 0 24px;padding-left:20px;">
+                            <li>An adjuster will contact you within two business days.</li>
+                            <li>If it is safe to do so, take photos of the damage and keep any receipts for emergency repairs.</li>
+                            <li>Quote your claim number whenever you contact us.</li>
+                        </ol>
+
+                        <p style="margin:0;">Thank you,<br>Red River Mutual Claims</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:16px 32px;font-size:12px;line-height:18px;color:#7b8794;border-top:1px solid #e4e7eb;">
+                        This is an automated message; please do not reply to it.
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

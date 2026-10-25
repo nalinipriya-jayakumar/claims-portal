@@ -1,0 +1,8 @@
+# Test-only overrides. Spring Boot loads classpath:config/application.yml in addition to
+# classpath:application.yml, with higher precedence, so only the keys below change.
+
+claims:
+  outbox:
+    relay:
+      # Tests call OutboxRelay.publishPendingBatch() themselves, so the timer cannot race them.
+      scheduling-enabled: false

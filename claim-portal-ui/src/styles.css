@@ -1,0 +1,307 @@
+/* Plain CSS with design tokens; contrast ratios meet WCAG 2.1 AA (NFR-12). */
+:root {
+  --color-text: #1f2933;
+  --color-muted: #52606d;
+  --color-brand: #1f3a5f;
+  --color-brand-dark: #142740;
+  --color-border: #7b8794;
+  --color-surface: #ffffff;
+  --color-page: #f4f5f7;
+  --color-error: #b42318;
+  --color-success: #1d6b3a;
+  --color-focus: #ffbf47;
+  --radius: 4px;
+  --space: 8px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-page);
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+main.container {
+  padding-top: calc(var(--space) * 4);
+  padding-bottom: calc(var(--space) * 6);
+}
+
+/* One visible focus style everywhere: thick, high contrast, never removed. */
+:focus-visible,
+.error-summary:focus,
+.notice:focus,
+.confirmation__title:focus {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--color-text);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 16px;
+  top: 8px;
+  z-index: 10;
+  padding: var(--space) calc(var(--space) * 2);
+  background: var(--color-focus);
+  color: var(--color-text);
+}
+
+.site-header {
+  background: var(--color-brand);
+  color: #fff;
+  padding: calc(var(--space) * 2) 0;
+}
+
+.site-header__name {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.site-footer {
+  border-top: 1px solid #d9dde2;
+  padding: calc(var(--space) * 3) 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 0 0 calc(var(--space) * 2);
+}
+
+.lead {
+  font-size: 1.125rem;
+  margin: 0 0 calc(var(--space) * 4);
+}
+
+.claim-form {
+  background: var(--color-surface);
+  padding: calc(var(--space) * 4);
+  border-radius: var(--radius);
+}
+
+.section {
+  border: 0;
+  margin: 0 0 calc(var(--space) * 4);
+  padding: 0;
+  min-width: 0;
+}
+
+.section__title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin-bottom: calc(var(--space) * 2);
+  padding: 0;
+}
+
+.field {
+  margin-bottom: calc(var(--space) * 3);
+}
+
+.field--error {
+  border-left: 4px solid var(--color-error);
+  padding-left: calc(var(--space) * 2);
+}
+
+.field__label,
+.checkbox__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.field__optional {
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.field__hint {
+  margin: 0 0 4px;
+  color: var(--color-muted);
+}
+
+.field__error {
+  margin: 0 0 4px;
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.field__counter {
+  margin: 4px 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.field__counter--over {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  padding: var(--space);
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.input--short {
+  max-width: 10ch;
+}
+
+.input--medium {
+  max-width: 24rem;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.checkbox {
+  display: flex;
+  gap: calc(var(--space) * 1.5);
+  align-items: flex-start;
+}
+
+.checkbox__input {
+  width: 24px;
+  height: 24px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--color-brand);
+}
+
+.checkbox__label {
+  font-weight: 400;
+}
+
+.button {
+  display: inline-block;
+  min-height: 44px;
+  padding: var(--space) calc(var(--space) * 3);
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-brand);
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-brand-dark);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button--secondary {
+  color: var(--color-brand);
+  background: #fff;
+  border: 2px solid var(--color-brand);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: var(--color-page);
+}
+
+.error-summary,
+.notice--error {
+  border: 4px solid var(--color-error);
+  padding: calc(var(--space) * 2) calc(var(--space) * 3);
+  margin-bottom: calc(var(--space) * 4);
+  border-radius: var(--radius);
+}
+
+.error-summary__title,
+.notice__title {
+  font-size: 1.25rem;
+  margin: 0 0 var(--space);
+}
+
+.error-summary__list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-summary__list a {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.confirmation {
+  background: var(--color-surface);
+  padding: calc(var(--space) * 4);
+  border-radius: var(--radius);
+}
+
+.confirmation__panel {
+  background: var(--color-success);
+  color: #fff;
+  text-align: center;
+  padding: calc(var(--space) * 4);
+  border-radius: var(--radius);
+  margin-bottom: calc(var(--space) * 4);
+}
+
+.confirmation__title {
+  font-size: 2rem;
+  margin: 0 0 calc(var(--space) * 2);
+}
+
+.confirmation__label {
+  margin: 0;
+}
+
+.confirmation__number {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin: 4px 0 0;
+}
+
+@media (max-width: 480px) {
+  .claim-form,
+  .confirmation {
+    padding: calc(var(--space) * 2);
+  }
+
+  .page-title {
+    font-size: 1.625rem;
+  }
+}

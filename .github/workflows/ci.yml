@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (unit + Testcontainers integration tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      # The repository is developed on Windows, where Git does not record the executable bit.
+      - run: chmod +x mvnw
+      - name: Build and test all modules
+        run: ./mvnw -B -ntp verify
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/'
+          retention-days: 7
+
+  portal:
+    name: Portal (typecheck, tests, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: claim-portal-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: claim-portal-ui/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Generated API types match the OpenAPI contract
+        run: |
+          npm run generate:api
+          git diff --exit-code -- src/api/generated || { echo "::error::src/api/generated is stale. Run npm run generate:api and commit the result."; exit 1; }
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks (full history)
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.3 git /repo --redact --verbose
+
+  end-to-end:
+    name: End-to-end (docker compose + smoke test)
+    needs: [backend, portal]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build images and start the stack
+        run: docker compose up -d --build --wait --wait-timeout 300
+      - name: Submit a claim and wait for its email
+        run: sh scripts/smoke-test.sh
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose logs --no-color claims-api notification-service claim-portal
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

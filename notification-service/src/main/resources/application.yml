@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: notification-service
+  # Defaults match docker-compose.yml for local runs; containers and CI override them through
+  # environment variables. Password defaults are local-only values, never real secrets.
+  datasource:
+    url: jdbc:postgresql://${NOTIFICATION_DB_HOST:localhost}:${NOTIFICATION_DB_PORT:5432}/${NOTIFICATION_DB_NAME:notification}
+    username: ${NOTIFICATION_DB_USER:notification_app}
+    password: ${NOTIFICATION_DB_PASSWORD:local-dev-only}
+  flyway:
+    locations: classpath:db/migration
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:claims}
+    password: ${RABBITMQ_PASSWORD:local-dev-only}
+    listener:
+      simple:
+        # One message at a time per instance; scale out by running more instances (competing consumers).
+        concurrency: 1
+        prefetch: 1
+        # Retry and dead-lettering are configured in MessagingConfiguration, not by Boot.
+        default-requeue-rejected: false
+  mail:
+    # Mailpit locally: no authentication, no TLS. Production needs both (NFR-08).
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    properties:
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+server:
+  port: ${NOTIFICATION_SERVICE_PORT:8081}
+  error:
+    include-stacktrace: never
+    include-message: never
+
+notification:
+  email:
+    from: ${NOTIFICATION_EMAIL_FROM:Red River Mutual Claims <no-reply@claims.example.com>}
+  messaging:
+    queue: claims.submitted
+    # Transient failures (SMTP down) are retried in-process with exponential backoff, then the
+    # message is dead-lettered to <queue>.dlq. Malformed events skip the retries.
+    max-attempts: 3
+    initial-interval: 1s
+    multiplier: 2.0
+    max-interval: 10s
+
+logging:
+  pattern:
+    level: "%5p [%X{correlationId:-}]"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Prometheus and metrics are for operators; the Nginx edge never proxies /actuator.
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        # Ready means "can consume": broker and database. A mail outage is handled by retry/DLQ.
+        readiness:
+          include: readinessState,db,rabbit
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Sends claim confirmation emails from ClaimSubmitted events

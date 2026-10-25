@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="All services" type="CompoundRunConfigurationType">
+    <toRun name="ClaimsApiApplication" type="Application" />
+    <toRun name="NotificationServiceApplication" type="Application" />
+    <method v="2" />
+  </configuration>
+</component>

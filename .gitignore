@@ -1,0 +1,44 @@
+### Build output ###
+target/
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+!.mvn/wrapper/maven-wrapper.jar
+
+### Local configuration and secrets ###
+# Machine-specific preview config used by Claude Code.
+.claude/launch.json
+.env
+*.env.local
+
+### IntelliJ IDEA ###
+# Shared run configurations live in .run/ and are committed.
+.idea/
+*.iml
+.kotlin
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### VS Code ###
+.vscode/
+
+### Node (portal, slice 5) ###
+node_modules/
+dist/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Reference PDFs (kept local, not published) ###
+docs/*.pdf

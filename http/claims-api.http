@@ -1,0 +1,65 @@
+### Manual requests for the Claims API (IntelliJ HTTP Client: click the green arrow beside a request).
+### Start ClaimsApiApplication first. dateOfLoss must be within the last 365 days and not in the future.
+
+### Health
+GET http://localhost:8080/actuator/health
+
+### Submit a valid claim -> 201 with a claim number
+POST http://localhost:8080/api/v1/claims
+Content-Type: application/json
+X-Request-Id: manual-test-1
+
+{
+  "customer": {
+    "firstName": "Jane",
+    "lastName": "O'Neil",
+    "email": "jane.oneil@example.com",
+    "phone": "2045550142"
+  },
+  "policyNumber": "HO-12345678",
+  "dateOfLoss": "2026-10-15",
+  "lossType": "WATER",
+  "propertyAddress": {
+    "street": "123 Main Street",
+    "city": "Winnipeg",
+    "province": "MB",
+    "postalCode": "R3C 1A1"
+  },
+  "description": "Pipe burst in the basement overnight and flooded the laundry room.",
+  "consentAcknowledged": true
+}
+
+### Several invalid fields -> 400 problem+json, one error per field
+POST http://localhost:8080/api/v1/claims
+Content-Type: application/json
+
+{
+  "customer": {
+    "firstName": "",
+    "lastName": "O'Neil",
+    "email": "not-an-email"
+  },
+  "policyNumber": "HO-1",
+  "dateOfLoss": "2030-01-01",
+  "lossType": "FIRE",
+  "propertyAddress": {
+    "street": "123 Main Street",
+    "city": "Winnipeg",
+    "province": "MB",
+    "postalCode": "12345"
+  },
+  "description": "Too short",
+  "consentAcknowledged": false
+}
+
+### Unknown field -> 400 UNKNOWN_FIELD
+POST http://localhost:8080/api/v1/claims
+Content-Type: application/json
+
+{ "isAdmin": true }
+
+### Wrong content type -> 415
+POST http://localhost:8080/api/v1/claims
+Content-Type: text/plain
+
+hello

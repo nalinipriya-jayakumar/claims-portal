@@ -1,0 +1,154 @@
+# The whole claim portal on one machine.
+#
+#   docker compose up -d --build      build and start everything (first build takes a few minutes)
+#   docker compose up -d postgres rabbitmq mailpit
+#                                     infrastructure only, when running the apps from IntelliJ
+#   docker compose down -v            stop and delete local data
+#
+#   Portal  http://localhost:3000     Mailpit inbox  http://localhost:8025
+#   RabbitMQ management  http://localhost:15672
+#
+# Every credential below has a local-only default so a fresh clone starts with no setup.
+# Override any of them in a .env file (see .env.example); .env is gitignored.
+
+name: claims-portal
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-local-dev-only}
+      # One database and one login per service: the services never share data (ADR-007).
+      CLAIMS_DB_NAME: ${CLAIMS_DB_NAME:-claims}
+      CLAIMS_DB_USER: ${CLAIMS_DB_USER:-claims_app}
+      CLAIMS_DB_PASSWORD: ${CLAIMS_DB_PASSWORD:-local-dev-only}
+      NOTIFICATION_DB_NAME: ${NOTIFICATION_DB_NAME:-notification}
+      NOTIFICATION_DB_USER: ${NOTIFICATION_DB_USER:-notification_app}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-local-dev-only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-claims}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-local-dev-only}
+    ports:
+      - "127.0.0.1:5672:5672"     # AMQP
+      - "127.0.0.1:15672:15672"   # management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.24
+    environment:
+      MP_MAX_MESSAGES: 500
+    ports:
+      - "127.0.0.1:1025:1025"     # SMTP
+      - "127.0.0.1:8025:8025"     # web inbox
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  claims-api:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        MODULE: claims-api
+    image: claims-portal/claims-api:local
+    environment:
+      CLAIMS_DB_HOST: postgres
+      CLAIMS_DB_NAME: ${CLAIMS_DB_NAME:-claims}
+      CLAIMS_DB_USER: ${CLAIMS_DB_USER:-claims_app}
+      CLAIMS_DB_PASSWORD: ${CLAIMS_DB_PASSWORD:-local-dev-only}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-claims}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-local-dev-only}
+    ports:
+      # Direct access for debugging and Actuator; customers go through the portal on :3000.
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      # Readiness covers the database only: claims are accepted even while the broker is down.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        MODULE: notification-service
+    image: claims-portal/notification-service:local
+    environment:
+      NOTIFICATION_DB_HOST: postgres
+      NOTIFICATION_DB_NAME: ${NOTIFICATION_DB_NAME:-notification}
+      NOTIFICATION_DB_USER: ${NOTIFICATION_DB_USER:-notification_app}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:-local-dev-only}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER:-claims}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-local-dev-only}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8081/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  claim-portal:
+    build:
+      context: ./claim-portal-ui
+    image: claims-portal/claim-portal:local
+    ports:
+      - "127.0.0.1:3000:8080"
+    depends_on:
+      claims-api:
+        condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, not localhost: inside the image localhost resolves to IPv6 first, and Nginx listens on IPv4.
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

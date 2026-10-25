@@ -1,0 +1,7 @@
+# Test-only overrides, loaded on top of classpath:application.yml (classpath:config/ wins).
+
+notification:
+  messaging:
+    # Same retry behaviour as production, just fast enough for a test suite.
+    initial-interval: 100ms
+    max-interval: 300ms

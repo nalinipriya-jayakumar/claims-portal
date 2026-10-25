@@ -1,0 +1,7 @@
+# Active in containers (SPRING_PROFILES_ACTIVE=docker in the image).
+logging:
+  structured:
+    format:
+      # One JSON object per line in Elastic Common Schema; MDC values such as correlationId become
+      # fields, so a log platform can follow one claim across services.
+      console: ecs

@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ClaimsApiApplication" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.redrivermutual.claims.ClaimsApiApplication" />
+    <module name="claims-api" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

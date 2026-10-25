@@ -17,7 +17,10 @@ export type SubmitResult =
   | { kind: 'invalid'; errors: ServerFieldError[]; correlationId?: string }
   | { kind: 'failed'; correlationId?: string };
 
-export type SubmitClaim = (values: ClaimFormValues) => Promise<SubmitResult>;
+/**
+ * @param idempotencyKey one per submission; send the same key again only to retry the same claim
+ */
+export type SubmitClaim = (values: ClaimFormValues, idempotencyKey: string) => Promise<SubmitResult>;
 
 /**
  * Form values are flat for the form library; the API expects nested objects. Only call with values
@@ -50,13 +53,22 @@ export function toRequest(values: ClaimFormValues): ClaimSubmissionRequest {
  * Submits the claim. Never throws: every outcome, including a network failure, is a result the
  * form can show. A per-submission X-Request-Id lets support find the request in the logs.
  */
-export async function submitClaim(values: ClaimFormValues, fetchImpl: typeof fetch = fetch): Promise<SubmitResult> {
+export async function submitClaim(
+  values: ClaimFormValues,
+  idempotencyKey: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<SubmitResult> {
   const requestId = crypto.randomUUID();
   let response: Response;
   try {
     response = await fetchImpl('/api/v1/claims', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Request-Id': requestId },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-Request-Id': requestId,
+        'Idempotency-Key': idempotencyKey,
+      },
       body: JSON.stringify(toRequest(values)),
     });
   } catch {

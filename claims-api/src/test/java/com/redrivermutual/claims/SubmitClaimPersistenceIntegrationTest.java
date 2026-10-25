@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redrivermutual.claims.adapter.out.outbox.OutboxEventEntity;
 import com.redrivermutual.claims.adapter.out.outbox.OutboxEventRepository;
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmitClaimCommand;
 import com.redrivermutual.claims.domain.Claim;
 import com.redrivermutual.claims.domain.ClaimDetails;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class SubmitClaimPersistenceIntegrationTest {
 
     @Test
     void claimAndItsClaimSubmittedEventAreSavedTogether() throws Exception {
-        Claim claim = submitClaim.submit(recentDetails());
+        Claim claim = submitClaim.submit(SubmitClaimCommand.withoutKey(recentDetails())).claim();
 
         assertThat(claimRows(claim)).isEqualTo(1);
 
@@ -62,7 +63,7 @@ class SubmitClaimPersistenceIntegrationTest {
 
     @Test
     void eventCarriesOnlyWhatTheEmailNeeds() throws Exception {
-        Claim claim = submitClaim.submit(recentDetails());
+        Claim claim = submitClaim.submit(SubmitClaimCommand.withoutKey(recentDetails())).claim();
 
         String payload = outboxEvents.findByAggregateId(claim.claimNumber().value()).getFirst().getPayload();
 
@@ -74,8 +75,8 @@ class SubmitClaimPersistenceIntegrationTest {
 
     @Test
     void claimNumbersComeFromTheDatabaseSequenceAndIncrease() {
-        Claim first = submitClaim.submit(recentDetails());
-        Claim second = submitClaim.submit(recentDetails());
+        Claim first = submitClaim.submit(SubmitClaimCommand.withoutKey(recentDetails())).claim();
+        Claim second = submitClaim.submit(SubmitClaimCommand.withoutKey(recentDetails())).claim();
 
         assertThat(first.claimNumber().value()).matches("^CLM-\\d{4}-\\d{6}$");
         assertThat(second.claimNumber().value()).isGreaterThan(first.claimNumber().value());

@@ -78,6 +78,10 @@ class ClaimEntity {
     @Column(name = "submitted_at", nullable = false, updatable = false)
     private Instant submittedAt;
 
+    /** Internal flag for the claims team (ADR-0011); never returned by the API. */
+    @Column(name = "possible_duplicate_of", updatable = false)
+    private String possibleDuplicateOf;
+
     /** Null until first persisted, which is also how Spring Data tells a new entity from an existing one. */
     @Version
     private Long version;
@@ -104,6 +108,7 @@ class ClaimEntity {
         entity.description = details.description();
         entity.status = claim.status();
         entity.submittedAt = claim.submittedAt();
+        entity.possibleDuplicateOf = claim.duplicateOf().map(ClaimNumber::value).orElse(null);
         return entity;
     }
 
@@ -119,6 +124,7 @@ class ClaimEntity {
                         new PropertyAddress(street, city, province, postalCode),
                         description),
                 status,
-                submittedAt);
+                submittedAt,
+                possibleDuplicateOf == null ? null : new ClaimNumber(possibleDuplicateOf));
     }
 }

@@ -5,6 +5,7 @@ import com.redrivermutual.claims.application.SubmitClaimService;
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
 import com.redrivermutual.claims.application.port.out.ClaimNumberGenerator;
 import com.redrivermutual.claims.application.port.out.ClaimRepository;
+import com.redrivermutual.claims.application.port.out.IdempotencyStore;
 import com.redrivermutual.claims.application.port.out.OutboxPort;
 import com.redrivermutual.claims.domain.DateOfLossPolicy;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -38,12 +39,14 @@ public class ClaimsConfiguration {
     SubmitClaimUseCase submitClaimUseCase(ClaimRepository claimRepository,
                                           ClaimNumberGenerator claimNumberGenerator,
                                           OutboxPort outbox,
+                                          IdempotencyStore idempotencyStore,
                                           DateOfLossPolicy dateOfLossPolicy,
                                           Clock clock,
                                           PlatformTransactionManager transactionManager,
                                           MeterRegistry meterRegistry) {
         SubmitClaimService service =
-                new SubmitClaimService(claimRepository, claimNumberGenerator, outbox, dateOfLossPolicy, clock);
+                new SubmitClaimService(claimRepository, claimNumberGenerator, outbox, idempotencyStore,
+                        dateOfLossPolicy, clock);
         // Counted only after the transaction commits.
         return new MeteredSubmitClaimUseCase(
                 new TransactionalSubmitClaimUseCase(service, new TransactionTemplate(transactionManager)),

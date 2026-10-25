@@ -2,6 +2,9 @@ package com.redrivermutual.claims.adapter.in.web;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.IdempotencyKeyConflictException;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmissionResult;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmitClaimCommand;
 import com.redrivermutual.claims.domain.Claim;
 import com.redrivermutual.claims.domain.ClaimDetails;
 import com.redrivermutual.claims.domain.ClaimNumber;
@@ -17,6 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+
+import java.util.UUID;
 
 import static com.redrivermutual.claims.ClaimFixtures.FIXED_CLOCK;
 import static com.redrivermutual.claims.ClaimFixtures.NOW;
@@ -63,7 +68,7 @@ class ClaimControllerTest {
     @Test
     void validSubmissionReturns201WithClaimNumberAndConfirmationMessage() throws Exception {
         given(submitClaimUseCase.submit(any()))
-                .willReturn(Claim.submit(ClaimNumber.of(2026, 123), validDetails(), NOW));
+                .willReturn(SubmissionResult.created(Claim.submit(ClaimNumber.of(2026, 123), validDetails(), NOW)));
 
         submit(validRequestJson())
                 .andExpect(status().isCreated())
@@ -77,16 +82,18 @@ class ClaimControllerTest {
     @Test
     void requestIsTrimmedAndNormalizedBeforeReachingTheUseCase() throws Exception {
         given(submitClaimUseCase.submit(any()))
-                .willReturn(Claim.submit(ClaimNumber.of(2026, 1), validDetails(), NOW));
+                .willReturn(SubmissionResult.created(Claim.submit(ClaimNumber.of(2026, 1), validDetails(), NOW)));
         ObjectNode json = with(validRequestJson(), "customer.firstName", "  Jane  ");
 
         submit(json).andExpect(status().isCreated());
 
-        ArgumentCaptor<ClaimDetails> details = ArgumentCaptor.forClass(ClaimDetails.class);
-        then(submitClaimUseCase).should().submit(details.capture());
-        assertThat(details.getValue().customer().firstName()).isEqualTo("Jane");
-        assertThat(details.getValue().customer().email()).isEqualTo("jane.oneil@example.com");
-        assertThat(details.getValue().propertyAddress().postalCode()).isEqualTo("R3C 1A1");
+        ArgumentCaptor<SubmitClaimCommand> command = ArgumentCaptor.forClass(SubmitClaimCommand.class);
+        then(submitClaimUseCase).should().submit(command.capture());
+        ClaimDetails details = command.getValue().details();
+        assertThat(details.customer().firstName()).isEqualTo("Jane");
+        assertThat(details.customer().email()).isEqualTo("jane.oneil@example.com");
+        assertThat(details.propertyAddress().postalCode()).isEqualTo("R3C 1A1");
+        assertThat(command.getValue().idempotencyKey()).as("no header sent").isNull();
     }
 
     @Test
@@ -209,6 +216,63 @@ class ClaimControllerTest {
         submit(without(validRequestJson(), "policyNumber"), "evil\nINFO fake log line")
                 .andExpect(header().string(CorrelationIdFilter.HEADER, matchesPattern(UUID_PATTERN)))
                 .andExpect(header().string(CorrelationIdFilter.HEADER, not(containsString("evil"))));
+    }
+
+    @Test
+    void idempotencyKeyHeaderReachesTheUseCase() throws Exception {
+        UUID key = UUID.randomUUID();
+        given(submitClaimUseCase.submit(any()))
+                .willReturn(SubmissionResult.created(Claim.submit(ClaimNumber.of(2026, 1), validDetails(), NOW)));
+
+        mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", key.toString())
+                        .content(validRequestJson().toString()))
+                .andExpect(status().isCreated())
+                .andExpect(header().doesNotExist(ClaimController.REPLAYED_HEADER));
+
+        ArgumentCaptor<SubmitClaimCommand> command = ArgumentCaptor.forClass(SubmitClaimCommand.class);
+        then(submitClaimUseCase).should().submit(command.capture());
+        assertThat(command.getValue().idempotencyKey()).isEqualTo(key);
+    }
+
+    @Test
+    void replayReturnsTheOriginalClaimMarkedAsReplayed() throws Exception {
+        given(submitClaimUseCase.submit(any()))
+                .willReturn(SubmissionResult.replayed(Claim.submit(ClaimNumber.of(2026, 42), validDetails(), NOW)));
+
+        mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .content(validRequestJson().toString()))
+                .andExpect(status().isCreated())
+                .andExpect(header().string(ClaimController.REPLAYED_HEADER, "true"))
+                .andExpect(jsonPath("$.claimNumber").value("CLM-2026-000042"));
+    }
+
+    @Test
+    void keyReusedForADifferentClaimReturns409Problem() throws Exception {
+        given(submitClaimUseCase.submit(any())).willThrow(new IdempotencyKeyConflictException());
+
+        mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", UUID.randomUUID().toString())
+                        .content(validRequestJson().toString()))
+                .andExpect(status().isConflict())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type").value("/problems/idempotency-conflict"))
+                .andExpect(jsonPath("$.correlationId").exists());
+    }
+
+    @Test
+    void malformedIdempotencyKeyIsAFieldErrorThatDoesNotEchoTheValue() throws Exception {
+        String body = mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON)
+                        .header("Idempotency-Key", "not-a-uuid-SECRET")
+                        .content(validRequestJson().toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].field").value("Idempotency-Key"))
+                .andExpect(jsonPath("$.errors[0].code").value("INVALID_FORMAT"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).doesNotContain("SECRET");
+        then(submitClaimUseCase).should(never()).submit(any());
     }
 
     private ResultActions submit(ObjectNode json) throws Exception {

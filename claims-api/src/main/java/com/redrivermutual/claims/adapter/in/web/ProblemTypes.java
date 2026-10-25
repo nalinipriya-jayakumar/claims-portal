@@ -7,6 +7,7 @@ final class ProblemTypes {
 
     static final URI VALIDATION_ERROR = URI.create("/problems/validation-error");
     static final URI MALFORMED_REQUEST = URI.create("/problems/malformed-request");
+    static final URI IDEMPOTENCY_CONFLICT = URI.create("/problems/idempotency-conflict");
     static final URI PAYLOAD_TOO_LARGE = URI.create("/problems/payload-too-large");
     static final URI INTERNAL_ERROR = URI.create("/problems/internal-error");
 

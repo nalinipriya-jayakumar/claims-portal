@@ -4,10 +4,13 @@ import com.redrivermutual.claims.adapter.in.web.api.ClaimsApi;
 import com.redrivermutual.claims.adapter.in.web.model.ClaimSubmissionRequest;
 import com.redrivermutual.claims.adapter.in.web.model.ClaimSubmissionResponse;
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
-import com.redrivermutual.claims.domain.Claim;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmissionResult;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmitClaimCommand;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * Implements {@link ClaimsApi}, which is generated from {@code openapi/claims-api.yaml}: the path,
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class ClaimController implements ClaimsApi {
 
+    static final String REPLAYED_HEADER = "Idempotent-Replayed";
+
     private final SubmitClaimUseCase submitClaimUseCase;
     private final ClaimRequestValidator requestValidator;
 
@@ -30,9 +35,18 @@ class ClaimController implements ClaimsApi {
 
     /** {@code xRequestId} is handled by {@link CorrelationIdFilter} before the request gets here. */
     @Override
-    public ResponseEntity<ClaimSubmissionResponse> submitClaim(ClaimSubmissionRequest request, String xRequestId) {
+    public ResponseEntity<ClaimSubmissionResponse> submitClaim(ClaimSubmissionRequest request,
+                                                               UUID idempotencyKey,
+                                                               String xRequestId) {
         requestValidator.validate(request);
-        Claim claim = submitClaimUseCase.submit(ClaimApiMapper.toDetails(request));
-        return ResponseEntity.status(HttpStatus.CREATED).body(ClaimApiMapper.toResponse(claim));
+        SubmissionResult result = submitClaimUseCase.submit(
+                new SubmitClaimCommand(ClaimApiMapper.toDetails(request), idempotencyKey));
+
+        // A replay returns the original answer, marked so clients and logs can tell it apart.
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(HttpStatus.CREATED);
+        if (result.replayed()) {
+            response.header(REPLAYED_HEADER, "true");
+        }
+        return response.body(ClaimApiMapper.toResponse(result.claim()));
     }
 }

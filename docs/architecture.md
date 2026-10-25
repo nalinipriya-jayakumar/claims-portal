@@ -104,6 +104,8 @@ sequenceDiagram
 | Broker down at submit time | Claim still accepted; outbox row waits; relay retries every second | `OutboxRelay`, ADR-0002 |
 | No queue bound yet | Not marked published (mandatory + returns); retried until the consumer has declared its queue | `RabbitOutboxEventPublisher` |
 | Notification Service stopped | Messages wait in the durable queue; emails go out when it restarts (AC-04) | |
+| Same submission sent twice (retry, refresh, double-click) | With the same `Idempotency-Key`: the original 201 and claim number, marked `Idempotent-Replayed`; no second claim, event or email. Same key, different claim: 409 | `SubmitClaimService`, `JdbcIdempotencyStore`, ADR-0011 |
+| Customer reports the same incident again | Accepted as a new claim, flagged `possible_duplicate_of` the first one for the claims team; the flag is never shown to the caller | `SubmitClaimService`, ADR-0011 |
 | Event delivered twice | One email; the second delivery is skipped | `JdbcProcessedEventStore`, ADR-0003 |
 | SMTP down | 3 attempts with exponential backoff, then dead-lettered; the processed row rolls back, so a replay still sends | `MessagingConfiguration`, `SmtpOutageIntegrationTest` (AC-06) |
 | Malformed or unknown-version event | Straight to the DLQ, no retries | `ClaimSubmittedListener`, `NonRetryableEventException` |

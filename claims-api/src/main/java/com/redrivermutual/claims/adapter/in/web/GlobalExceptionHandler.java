@@ -8,9 +8,11 @@ import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import com.redrivermutual.claims.adapter.in.web.model.ClaimSubmissionRequest;
 import com.redrivermutual.claims.adapter.in.web.model.FieldError;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
 import com.redrivermutual.claims.domain.InvalidDateOfLossException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -19,8 +21,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.net.URI;
@@ -58,6 +62,16 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return validationProblem(List.of(FieldViolation.forDateOfLoss(ex.violation(), ex.maxAgeDays())));
     }
 
+    @ExceptionHandler(SubmitClaimUseCase.IdempotencyKeyConflictException.class)
+    ProblemDetail handleIdempotencyConflict(SubmitClaimUseCase.IdempotencyKeyConflictException ex) {
+        ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        problem.setType(ProblemTypes.IDEMPOTENCY_CONFLICT);
+        problem.setTitle("Idempotency key reused for a different claim");
+        problem.setDetail("Use a new Idempotency-Key for a new claim. Nothing was saved.");
+        problem.setProperty(CORRELATION_ID, CorrelationIdFilter.currentCorrelationId());
+        return problem;
+    }
+
     @ExceptionHandler(Exception.class)
     ProblemDetail handleUnexpected(Exception ex) {
         log.error("Unexpected error while handling request", ex);
@@ -86,6 +100,23 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             }
         }
         return super.handleMethodArgumentNotValid(ex, headers, status, request);
+    }
+
+    /**
+     * A header or parameter of the wrong type, in practice an {@code Idempotency-Key} that is not a
+     * UUID. Spring's default detail quotes the rejected value; this one names only the parameter.
+     */
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(TypeMismatchException ex, HttpHeaders headers,
+                                                        HttpStatusCode status, WebRequest request) {
+        String name = ex.getPropertyName() != null ? ex.getPropertyName() : "$";
+        String field = ex instanceof MethodArgumentTypeMismatchException mismatch
+                && mismatch.getParameter().hasParameterAnnotation(RequestHeader.class)
+                ? mismatch.getParameter().getParameterAnnotation(RequestHeader.class).value()
+                : name;
+        ProblemDetail problem = problem(ProblemTypes.VALIDATION_ERROR, "Invalid claim submission",
+                List.of(new FieldViolation(field, ErrorCode.INVALID_FORMAT, field + " has the wrong format.")));
+        return handleExceptionInternal(ex, problem, headers, HttpStatus.BAD_REQUEST, request);
     }
 
     /** Unreadable JSON: report the field Jackson stopped at, without the value it rejected. */

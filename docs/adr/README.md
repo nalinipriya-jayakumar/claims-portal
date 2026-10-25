@@ -1,7 +1,7 @@
 # Architecture decision records
 
 Each record states the context, the decision, the alternatives rejected and what the decision costs.
-They expand section 8 of `Claim_Portal_Architecture.pdf` (supplied separately); 0009 and 0010 were added during implementation.
+They expand section 8 of `Claim_Portal_Architecture.pdf` (supplied separately); 0009 to 0011 were added during implementation.
 
 | ADR | Decision | Status |
 |---|---|---|
@@ -15,3 +15,4 @@ They expand section 8 of `Claim_Portal_Architecture.pdf` (supplied separately); 
 | [0008](0008-mailpit.md) | Mailpit as the SMTP server | Accepted |
 | [0009](0009-same-origin-edge.md) | Same-origin portal behind an Nginx edge | Accepted |
 | [0010](0010-contract-driven-api.md) | Contract-driven API: code generated from the OpenAPI document | Accepted |
+| [0011](0011-duplicate-submissions.md) | Duplicate submissions: idempotency key for retries, flag for repeat reports | Accepted |

@@ -168,9 +168,9 @@ Change it first, then follow the compiler:
 
 | Command | What runs |
 |---|---|
-| `./mvnw verify` | All Java modules: 130 tests. Generates the API code from the contract first. Unit tests, Spring slice tests, and integration tests against real PostgreSQL, RabbitMQ and Mailpit started by Testcontainers (Docker must be running) |
+| `./mvnw verify` | All Java modules: 143 tests. Generates the API code from the contract first. Unit tests, Spring slice tests, and integration tests against real PostgreSQL, RabbitMQ and Mailpit started by Testcontainers (Docker must be running) |
 | `./mvnw -pl claims-api test` | One module |
-| `cd claim-portal-ui && npm test` | Portal: 27 tests with Vitest and Testing Library |
+| `cd claim-portal-ui && npm test` | Portal: 29 tests with Vitest and Testing Library |
 | `cd claim-portal-ui && npm run typecheck` | TypeScript in strict mode |
 | `./scripts/smoke-test.sh` | End to end against the running Compose stack |
 
@@ -192,6 +192,7 @@ cannot be shown with mocks.
 | `SmtpOutageIntegrationTest` | With SMTP down: retried, then dead-lettered, and not marked processed, so a replay still sends (AC-06) |
 | `ClaimControllerTest` | 201/400/413/415/500 behaviour and that errors never contain submitted values (AC-03) |
 | `ContractConformanceTest` | The domain's loss types, provinces, statuses and the API's error codes match the OpenAPI contract exactly |
+| `DuplicateSubmissionIntegrationTest` | A retry with the same `Idempotency-Key` returns the original claim and creates no second claim, event or email, even with four requests at once; a repeat report of the same incident is saved with its duplicate flag |
 | `App.test.tsx` | Error summary and focus, disabled button while submitting, confirmation page, server errors mapped to fields |
 
 CI (`.github/workflows/ci.yml`) runs all of the above on every push and pull request, plus a
@@ -220,7 +221,7 @@ The brief leaves these open; each is a deliberate decision (requirements analysi
 | A-04 | Submission is anonymous, as for a public first-notice-of-loss form. |
 | A-05 | Save and publish happen atomically through a transactional outbox. |
 | A-06 | If the email fails, the claim is still accepted; the email is retried, then dead-lettered. |
-| A-07 | Double-clicks are prevented in the UI. An `Idempotency-Key` header is not implemented in v1. |
+| A-07 | Retries are made safe with an `Idempotency-Key` header: the same submission sent again returns the original claim. A new report of an already-reported incident (same policy, date of loss and loss type) is accepted and flagged internally as a possible duplicate for the claims team, never rejected (ADR-0011). |
 | A-08 | PostgreSQL in Docker, rather than in-memory storage. |
 | A-09 | Data retention and privacy obligations (PIPEDA) are out of scope; listed for production. |
 | A-10 | No file upload (it would need object storage, size and type limits, and malware scanning). |
@@ -233,7 +234,7 @@ numbers would let anyone enumerate other people's claims.
 
 - **Security:** TLS everywhere (edge, database, broker, SMTP); a CAPTCHA and rate limiting on
   the form; a secrets manager; image and dependency scanning in the pipeline; a WAF in front of the portal.
-- **Business:** policy verification against the policy system; an `Idempotency-Key` header on submit;
+- **Business:** policy verification against the policy system; a claims-team view of claims flagged as possible duplicates; a purge job for idempotency keys older than 24 hours;
   a claim status page behind customer authentication; file upload with scanning; English/French.
 - **Email:** a transactional email provider with bounce and complaint handling; per-message
   idempotency keys to remove the rare duplicate after a crash (ADR-0003).
@@ -267,7 +268,7 @@ was accepted.
 - **Implementation.** The code was written with Claude in eight agreed slices (foundations, API
   validation, persistence and outbox, relay, notification service, portal, containers, documentation).
   I reviewed each slice and confirmed it before the next one started.
-- **Validation.** Each slice was built and tested before review: 157 automated tests in total. Beyond
+- **Validation.** Each slice was built and tested before review: 172 automated tests in total. Beyond
   the tests, every slice was run against the real containers. This found and fixed real defects:
   an entity/schema type mismatch caught by Hibernate validation, a contract bug in which YAML read the province code `ON` as `true` (it would have rejected every claim from Ontario, and was caught when the code started being generated from the contract), Testcontainers' incompatibility
   with Docker Engine 29, a correlation ID missing from a warning log, and an error-summary focus bug

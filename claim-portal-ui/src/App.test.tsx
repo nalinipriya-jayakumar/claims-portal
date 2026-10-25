@@ -115,4 +115,36 @@ describe('claim portal', () => {
     expect(notice).toHaveTextContent('ref-123');
     expect(screen.getByRole('button', { name: 'Submit claim' })).toBeEnabled();
   });
+
+  it('retrying the same claim after a failure reuses its idempotency key', async () => {
+    const u = user();
+    const submit = vi.fn<SubmitClaim>().mockResolvedValue({ kind: 'failed', correlationId: 'ref-1' });
+    renderApp(submit);
+    await fillValidClaim(u);
+
+    await u.click(screen.getByRole('button', { name: 'Submit claim' }));
+    await screen.findByRole('alert');
+    await u.click(screen.getByRole('button', { name: 'Submit claim' }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
+    const [firstKey, secondKey] = submit.mock.calls.map(([, key]) => key);
+    expect(firstKey).toMatch(/^[0-9a-f-]{36}$/);
+    expect(secondKey).toBe(firstKey);
+  });
+
+  it('changing the claim after a failure uses a new idempotency key', async () => {
+    const u = user();
+    const submit = vi.fn<SubmitClaim>().mockResolvedValue({ kind: 'failed', correlationId: 'ref-2' });
+    renderApp(submit);
+    await fillValidClaim(u);
+    await u.click(screen.getByRole('button', { name: 'Submit claim' }));
+    await screen.findByRole('alert');
+
+    await u.type(screen.getByLabelText('Description of the damage or loss'), ' The dryer too.');
+    await u.click(screen.getByRole('button', { name: 'Submit claim' }));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(2));
+    const [firstKey, secondKey] = submit.mock.calls.map(([, key]) => key);
+    expect(secondKey).not.toBe(firstKey);
+  });
 });

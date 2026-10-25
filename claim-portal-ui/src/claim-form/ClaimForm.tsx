@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { submitClaim as defaultSubmitClaim } from '../api/claimsApi';
+import { submitClaim as defaultSubmitClaim, toRequest } from '../api/claimsApi';
 import type { SubmitClaim } from '../api/claimsApi';
 import { ErrorSummary } from './ErrorSummary';
 import type { SummaryItem } from './ErrorSummary';
@@ -103,9 +103,24 @@ export function ClaimForm({ onAccepted, submit = defaultSubmitClaim, today = loc
       })
     : [];
 
+  /*
+   * One Idempotency-Key per claim. Re-sending exactly the same claim (after a network failure or a
+   * server error) reuses the key, so if the first attempt did reach the server the customer gets
+   * that claim number back instead of a second claim. Any change to the answers is a new claim
+   * and gets a new key; reusing the old one would be rejected with 409.
+   */
+  const lastAttempt = useRef<{ request: string; key: string } | null>(null);
+  const idempotencyKeyFor = (values: ClaimFormValues) => {
+    const request = JSON.stringify(toRequest(values));
+    if (lastAttempt.current?.request !== request) {
+      lastAttempt.current = { request, key: crypto.randomUUID() };
+    }
+    return lastAttempt.current.key;
+  };
+
   const onValid = async (values: ClaimFormValues) => {
     setFailureReference(null);
-    const result = await submit(values);
+    const result = await submit(values, idempotencyKeyFor(values));
 
     if (result.kind === 'accepted') {
       onAccepted({ claimNumber: result.claimNumber, email: values.email.trim() });

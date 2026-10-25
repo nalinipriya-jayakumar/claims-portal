@@ -1,6 +1,7 @@
 package com.redrivermutual.claims;
 
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmitClaimCommand;
 import com.redrivermutual.claims.application.port.out.OutboxPort;
 import com.redrivermutual.claims.domain.ClaimDetails;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ class SubmitClaimRollbackIntegrationTest {
         ClaimDetails details = new ClaimDetails(valid.customer(), valid.policyNumber(),
                 LocalDate.now(WINNIPEG).minusDays(1), valid.lossType(), valid.propertyAddress(), valid.description());
 
-        assertThatThrownBy(() -> submitClaim.submit(details)).hasMessage("outbox unavailable");
+        assertThatThrownBy(() -> submitClaim.submit(SubmitClaimCommand.withoutKey(details)).claim()).hasMessage("outbox unavailable");
 
         assertThat(claimCount()).isEqualTo(claimsBefore);
     }

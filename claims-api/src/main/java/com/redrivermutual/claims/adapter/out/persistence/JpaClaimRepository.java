@@ -4,10 +4,12 @@ import com.redrivermutual.claims.application.port.out.ClaimRepository;
 import com.redrivermutual.claims.application.port.out.DuplicateClaimNumberException;
 import com.redrivermutual.claims.domain.Claim;
 import com.redrivermutual.claims.domain.ClaimNumber;
+import com.redrivermutual.claims.domain.LossType;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 /** Adapts the {@link ClaimRepository} port to Spring Data JPA and PostgreSQL. */
@@ -39,6 +41,12 @@ class JpaClaimRepository implements ClaimRepository {
     @Override
     public Optional<Claim> findByClaimNumber(ClaimNumber claimNumber) {
         return jpa.findByClaimNumber(claimNumber.value()).map(ClaimEntity::toDomain);
+    }
+
+    @Override
+    public Optional<ClaimNumber> findEarliestForIncident(String policyNumber, LocalDate dateOfLoss, LossType lossType) {
+        return jpa.findFirstByPolicyNumberAndDateOfLossAndLossTypeOrderBySubmittedAtAsc(policyNumber, dateOfLoss, lossType)
+                .map(entity -> entity.toDomain().claimNumber());
     }
 
     private static boolean violates(DataIntegrityViolationException e, String constraintName) {

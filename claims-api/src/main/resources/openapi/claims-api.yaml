@@ -44,10 +44,19 @@ paths:
         the JSON itself (unknown field, value outside an enum, unparseable date) stop at the
         first one.
 
-        **Duplicate submissions:** v1 has no idempotency key; the portal disables the submit
-        button while a request is in flight. An `Idempotency-Key` header (FR-18, a "Could") is a
-        documented production improvement.
+        **Retries (`Idempotency-Key`):** send a client-generated UUID, one per submission, and reuse
+        it when retrying that submission. A repeat with the same key and the same claim returns the
+        original `201` (same claim number, `Idempotent-Replayed: true`) without creating a second
+        claim, event or email. The same key with a different claim returns `409`. Claims are
+        compared after normalization (trimming, case of email and postal code), so formatting
+        differences do not count as a different claim. Keys are kept for at least 24 hours.
+
+        **Repeat reports of the same incident** (a new submission, so a new key) are accepted as
+        a new claim. When one matches an existing claim on policy number, date of loss and loss
+        type, it is flagged internally as a possible duplicate for the claims team. The flag is not
+        returned to the caller, so the API reveals nothing about other submissions.
       parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/RequestId'
       requestBody:
         required: true
@@ -80,6 +89,10 @@ paths:
           headers:
             X-Request-Id:
               $ref: '#/components/headers/RequestId'
+            Idempotent-Replayed:
+              description: Present and `true` when this response repeats an earlier one for the same `Idempotency-Key`; no new claim was created.
+              schema:
+                type: boolean
           content:
             application/json:
               schema:
@@ -93,6 +106,8 @@ paths:
                     message: Your claim has been received. A confirmation email will be sent to you shortly.
         '400':
           $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/IdempotencyConflict'
         '413':
           $ref: '#/components/responses/PayloadTooLarge'
         '415':
@@ -102,6 +117,15 @@ paths:
 
 components:
   parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      description: Client-generated UUID identifying one submission. Reuse it to retry that submission safely; use a new one for a new submission. A value that is not a UUID is rejected with 400.
+      schema:
+        type: string
+        format: uuid
+      example: 3b1f6c2e-8d4a-4f6b-9a2e-5c7d8e9f0a1b
     RequestId:
       name: X-Request-Id
       in: header
@@ -328,6 +352,17 @@ components:
                   - field: $
                     code: INVALID_FORMAT
                     message: Request body is not valid JSON.
+    IdempotencyConflict:
+      description: The Idempotency-Key was already used for a different claim. Nothing was saved.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+          example:
+            type: /problems/idempotency-conflict
+            title: Idempotency key reused for a different claim
+            status: 409
+            correlationId: 7c4f0a2e-1b9d-4e61-a3f2-0d5e8c9b7a12
     PayloadTooLarge:
       description: Request body exceeds 64 KB.
       content:

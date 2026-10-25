@@ -6,6 +6,7 @@ import com.redrivermutual.claims.adapter.out.outbox.OutboxEventEntity;
 import com.redrivermutual.claims.adapter.out.outbox.OutboxEventRepository;
 import com.redrivermutual.claims.adapter.out.outbox.OutboxRelay;
 import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase;
+import com.redrivermutual.claims.application.port.in.SubmitClaimUseCase.SubmitClaimCommand;
 import com.redrivermutual.claims.domain.Claim;
 import com.redrivermutual.claims.domain.ClaimDetails;
 import com.redrivermutual.events.ClaimEventsMessaging;
@@ -125,7 +126,7 @@ class OutboxRelayIntegrationTest {
                 LocalDate.now(WINNIPEG).minusDays(1), valid.lossType(), valid.propertyAddress(), valid.description());
         MDC.put(CorrelationIdFilter.MDC_KEY, correlationId);
         try {
-            return submitClaim.submit(details);
+            return submitClaim.submit(SubmitClaimCommand.withoutKey(details)).claim();
         } finally {
             MDC.remove(CorrelationIdFilter.MDC_KEY);
         }

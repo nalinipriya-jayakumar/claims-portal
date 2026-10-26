@@ -8,6 +8,8 @@ out/
 ### Local configuration and secrets ###
 # Machine-specific preview config used by Claude Code.
 .claude/launch.json
+# Local Claude Code project notes, not part of the deliverable.
+CLAUDE.md
 .env
 *.env.local
 

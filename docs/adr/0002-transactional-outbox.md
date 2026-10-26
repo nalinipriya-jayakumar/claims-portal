@@ -20,7 +20,7 @@ at least one queue (mandatory flag); otherwise it stays pending and is retried.
 - Change data capture (Debezium): no polling, but another component to run. It is the scale-up path.
 
 ## Consequences
-- No lost and no phantom events; claims are accepted while the broker is down (AC-04).
+- No lost and no phantom events; claims are accepted while the broker is down.
 - Up to about one second of publish lag. Delivery is at-least-once, so duplicates are possible and
   the consumer must de-duplicate (ADR-0003).
 - Row locks are held while waiting for broker confirms, which is fine for small batches.

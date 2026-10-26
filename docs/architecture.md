@@ -1,8 +1,7 @@
 # Architecture overview
 
-This page describes the solution as built. The reasoning behind it (drivers, the six styles that
-were compared, scoring) is in `Claim_Portal_Architecture.pdf`, the requirements in
-`Claim_Portal_Requirements_Analysis.pdf` (both supplied separately), and individual decisions in [`adr/`](adr/README.md).
+This page describes the solution as built. The reasoning behind individual decisions, including
+the alternatives rejected, is in [`adr/`](adr/README.md).
 
 ## In one paragraph
 
@@ -15,38 +14,7 @@ in a dead-letter queue that operations can see and replay.
 
 ## Components
 
-```mermaid
-flowchart LR
-    browser([Customer browser])
-
-    subgraph edge[claim-portal :3000]
-        nginx[Nginx<br/>React SPA + /api proxy]
-    end
-
-    subgraph api[claims-api :8080]
-        controller[ClaimController] --> submit[SubmitClaimService]
-        relay[OutboxRelay<br/>every 1 s]
-    end
-
-    claimsdb[(PostgreSQL<br/>claims db<br/>claim, outbox_event)]
-    broker{{RabbitMQ<br/>claims.events exchange<br/>claims.submitted queue + DLQ}}
-
-    subgraph notif[notification-service :8081]
-        listener[ClaimSubmittedListener] --> send[SendClaimConfirmationService]
-    end
-
-    notifdb[(PostgreSQL<br/>notification db<br/>processed_event)]
-    mailpit[Mailpit<br/>SMTP :1025 / inbox :8025]
-
-    browser -->|HTTPS in production| nginx
-    nginx -->|/api only| controller
-    submit -->|one transaction: claim + outbox row| claimsdb
-    relay -->|lock unpublished rows| claimsdb
-    relay -->|publish, confirmed + routed| broker
-    broker -->|at-least-once| listener
-    send -->|insert event id, same tx as send| notifdb
-    send -->|SMTP| mailpit
-```
+![Components: the portal calls the Claims API, which saves to its database; the outbox relay publishes to RabbitMQ; the Notification Service consumes, records the event and sends email to Mailpit](diagrams/components.png)
 
 | Component | Technology | Owns |
 |---|---|---|
@@ -61,39 +29,7 @@ flowchart LR
 
 ## The claim, step by step
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor C as Customer
-    participant P as Portal (Nginx)
-    participant A as Claims API
-    participant DB as Claims DB
-    participant R as Outbox relay
-    participant MQ as RabbitMQ
-    participant N as Notification Service
-    participant NDB as Notification DB
-    participant M as Mailpit
-
-    C->>P: Submit form (client-side checks passed)
-    P->>A: POST /api/v1/claims, X-Request-Id
-    A->>A: Validate every field, check date-of-loss rule
-    A->>DB: BEGIN, next claim number, INSERT claim, INSERT outbox_event, COMMIT
-    A-->>C: 201 CLM-2026-000123 "confirmation email will follow"
-    Note over A,C: The customer waits only for validation and one transaction.
-    R->>DB: SELECT unpublished ... FOR UPDATE SKIP LOCKED
-    R->>MQ: Publish (persistent, message-id = event id)
-    MQ-->>R: Confirm + routed
-    R->>DB: Mark published_at, COMMIT
-    MQ->>N: Deliver ClaimSubmitted
-    N->>NDB: BEGIN, INSERT event id ON CONFLICT DO NOTHING
-    alt new event
-        N->>M: Send email (text + HTML)
-        N->>NDB: COMMIT
-    else already processed
-        N->>NDB: ROLLBACK, skip (no second email)
-    end
-    N-->>MQ: Ack
-```
+![The claim step by step: submit, validate, save claim and outbox row in one transaction, respond 201; the relay publishes to RabbitMQ; the Notification Service de-duplicates, sends the email and acknowledges](diagrams/claim-sequence.png)
 
 ## What happens when things fail
 
@@ -103,11 +39,11 @@ sequenceDiagram
 | Database down | API is not ready (readiness includes `db`); requests fail with a generic 500 and a reference | Actuator readiness group |
 | Broker down at submit time | Claim still accepted; outbox row waits; relay retries every second | `OutboxRelay`, ADR-0002 |
 | No queue bound yet | Not marked published (mandatory + returns); retried until the consumer has declared its queue | `RabbitOutboxEventPublisher` |
-| Notification Service stopped | Messages wait in the durable queue; emails go out when it restarts (AC-04) | |
+| Notification Service stopped | Messages wait in the durable queue; emails go out when it restarts | |
 | Same submission sent twice (retry, refresh, double-click) | With the same `Idempotency-Key`: the original 201 and claim number, marked `Idempotent-Replayed`; no second claim, event or email. Same key, different claim: 409 | `SubmitClaimService`, `JdbcIdempotencyStore`, ADR-0011 |
 | Customer reports the same incident again | Accepted as a new claim, flagged `possible_duplicate_of` the first one for the claims team; the flag is never shown to the caller | `SubmitClaimService`, ADR-0011 |
 | Event delivered twice | One email; the second delivery is skipped | `JdbcProcessedEventStore`, ADR-0003 |
-| SMTP down | 3 attempts with exponential backoff, then dead-lettered; the processed row rolls back, so a replay still sends | `MessagingConfiguration`, `SmtpOutageIntegrationTest` (AC-06) |
+| SMTP down | 3 attempts with exponential backoff, then dead-lettered; the processed row rolls back, so a replay still sends | `MessagingConfiguration`, `SmtpOutageIntegrationTest` |
 | Malformed or unknown-version event | Straight to the DLQ, no retries | `ClaimSubmittedListener`, `NonRetryableEventException` |
 | Crash after SMTP accepted, before commit | One duplicate email on redelivery: an accepted, documented limitation | ADR-0003 |
 

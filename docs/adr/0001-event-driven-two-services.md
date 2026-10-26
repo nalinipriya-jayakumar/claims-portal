@@ -19,8 +19,6 @@ Inside each service a ports-and-adapters layout keeps the domain and use cases f
 - Modular monolith with a real queue: the consumer would share the API's process and lifecycle.
 - Fine-grained microservices or serverless: more moving parts or a cloud dependency, no benefit here.
 
-The weighted comparison is in section 4 of the architecture document (this option scored 109/120).
-
 ## Consequences
 - Email never touches the customer's request; each side fails, scales and deploys on its own.
 - Six containers instead of one, and eventual consistency between "claim accepted" and "email sent",

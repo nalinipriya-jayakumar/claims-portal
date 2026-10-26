@@ -16,7 +16,7 @@ prevented two claims. There are two different problems:
 The API is anonymous, so its answers must not reveal what other submissions exist.
 
 ## Decision
-**Retries: `Idempotency-Key` header (FR-18).** The client sends a UUID per submission and reuses
+**Retries: `Idempotency-Key` header.** The client sends a UUID per submission and reuses
 it when retrying. The API stores key, a SHA-256 fingerprint of the normalized claim, and the claim
 number in `idempotency_key`, in the same transaction as the claim and its outbox row.
 - Same key, same claim: the original `201` is returned with `Idempotent-Replayed: true`; no claim,

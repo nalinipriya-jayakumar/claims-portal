@@ -12,7 +12,6 @@ Built for the Red River Mutual Software Developer III technical challenge.
 | Stack | Java 21, Spring Boot 3.5, React 19 + TypeScript, PostgreSQL 16, RabbitMQ 4.1, Mailpit, Docker Compose |
 | Architecture | [docs/architecture.md](docs/architecture.md) · decisions in [docs/adr](docs/adr/README.md) |
 | API contract | [claims-api/src/main/resources/openapi/claims-api.yaml](claims-api/src/main/resources/openapi/claims-api.yaml): the source of truth; server interface, models and portal types are generated from it ([ADR-0010](docs/adr/0010-contract-driven-api.md)) |
-| Requirements | `Claim_Portal_Requirements_Analysis.pdf`, supplied separately (FR, NFR and AC numbers used below) |
 
 ## Quick start
 
@@ -51,27 +50,27 @@ Stop with `docker compose down`, or `docker compose down -v` to delete all data 
 
 1. **Submit an empty form.** Open http://localhost:3000 and click **Submit claim**. Focus moves to
    an error summary listing every missing field; each link jumps to its field. Errors also appear
-   next to each field as you leave it (FR-02).
+   next to each field as you leave it.
 2. **Submit a real claim.** Fill in the form with any `@example.com` address and a date of loss in
-   the last year. The button is disabled while the request is in flight (FR-03). The confirmation
-   page shows the claim number, for example `CLM-2026-000007`, and asks you to check your email (FR-17).
+   the last year. The button is disabled while the request is in flight. The confirmation
+   page shows the claim number, for example `CLM-2026-000007`, and asks you to check your email.
 3. **See the email.** Open http://localhost:8025. A message "We received your claim
    CLM-2026-000007" arrived within a second or two, addressed to you, with the claim number, loss
-   details and next steps (FR-14, FR-15, AC-02).
+   details and next steps.
 4. **Show the server is the source of truth.** Bypass the form:
    ```bash
    curl -s -X POST localhost:3000/api/v1/claims -H 'Content-Type: application/json' \
         -d '{"policyNumber":"HO-1","dateOfLoss":"2099-01-01"}'
    ```
    The answer is `400 application/problem+json` with one error per field and a `correlationId`,
-   and nothing is saved or published (FR-06, AC-03).
+   and nothing is saved or published.
 5. **Show the email really is asynchronous.** Stop the consumer, submit a claim, start it again:
    ```bash
    docker compose stop notification-service
    # submit a claim in the portal: it is accepted with a claim number
    docker compose start notification-service
    ```
-   The email arrives a few seconds after the restart. The claim was never at risk (AC-04).
+   The email arrives a few seconds after the restart. The claim was never at risk.
 6. **Follow one claim through the logs.** Every log line for a claim carries the same correlation ID,
    from the browser's request to the email:
    ```bash
@@ -121,7 +120,7 @@ claim-portal-ui/         React + TypeScript portal; Nginx config for the contain
 docker/                  Java service Dockerfile, Postgres init script (one database per service)
 docker-compose.yml       The whole system
 scripts/smoke-test.sh    End-to-end check against the running stack
-docs/                    Brief, requirements analysis, architecture, ADRs
+docs/                    Architecture overview and ADRs
 .github/workflows/ci.yml Build, test, secret scan, images, end-to-end
 .run/                    Shared IntelliJ IDEA run configurations
 http/claims-api.http     Ready-made API requests for IntelliJ's HTTP client
@@ -186,11 +185,11 @@ cannot be shown with mocks.
 
 | Test | Proves |
 |---|---|
-| `ClaimConfirmationFlowIntegrationTest` | An event produces exactly one email with the claim number; a duplicate delivery sends nothing more; a malformed message is dead-lettered (AC-02, AC-05) |
-| `SubmitClaimRollbackIntegrationTest` | If recording the event fails, the claim is not saved either (NFR-03) |
+| `ClaimConfirmationFlowIntegrationTest` | An event produces exactly one email with the claim number; a duplicate delivery sends nothing more; a malformed message is dead-lettered |
+| `SubmitClaimRollbackIntegrationTest` | If recording the event fails, the claim is not saved either |
 | `OutboxRelayIntegrationTest` | Events reach the broker with event ID and correlation ID; an unroutable event is not marked published and is delivered once a queue exists |
-| `SmtpOutageIntegrationTest` | With SMTP down: retried, then dead-lettered, and not marked processed, so a replay still sends (AC-06) |
-| `ClaimControllerTest` | 201/400/413/415/500 behaviour and that errors never contain submitted values (AC-03) |
+| `SmtpOutageIntegrationTest` | With SMTP down: retried, then dead-lettered, and not marked processed, so a replay still sends |
+| `ClaimControllerTest` | 201/400/413/415/500 behaviour and that errors never contain submitted values |
 | `ContractConformanceTest` | The domain's loss types, provinces, statuses and the API's error codes match the OpenAPI contract exactly |
 | `DuplicateSubmissionIntegrationTest` | A retry with the same `Idempotency-Key` returns the original claim and creates no second claim, event or email, even with four requests at once; a repeat report of the same incident is saved with its duplicate flag |
 | `App.test.tsx` | Error summary and focus, disabled button while submitting, confirmation page, server errors mapped to fields |
@@ -211,7 +210,7 @@ gitleaks secret scan and an end-to-end job that builds the images, starts the st
 
 ## Assumptions
 
-The brief leaves these open; each is a deliberate decision (requirements analysis, section 10).
+The brief leaves these open; each is a deliberate decision.
 
 | # | Assumption |
 |---|---|
@@ -262,9 +261,10 @@ AI tools were used throughout, and every part of the result was reviewed, run an
 was accepted.
 
 - **Tools.** Claude (Anthropic), through Claude Code in the Claude desktop app with IntelliJ IDEA.
-- **Analysis and design.** From the challenge brief, Claude drafted the requirements analysis and the
-  architecture document in `docs/`. I reviewed them, chose the event-driven two-service design and
-  the decisions recorded in the ADRs, and used them as the specification for the build.
+- **Analysis and design.** From the challenge brief, Claude drafted a requirements analysis and a
+  comparison of architecture options as working documents. I reviewed them, chose the event-driven
+  two-service design and the decisions recorded in the ADRs, and used them as the specification for
+  the build. The design as built is in [docs/architecture.md](docs/architecture.md) and [docs/adr](docs/adr/README.md).
 - **Implementation.** The code was written with Claude in eight agreed slices (foundations, API
   validation, persistence and outbox, relay, notification service, portal, containers, documentation).
   I reviewed each slice and confirmed it before the next one started.

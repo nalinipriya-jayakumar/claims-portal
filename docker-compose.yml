@@ -19,7 +19,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-local-dev-only}
-      # One database and one login per service: the services never share data (ADR-007).
+      # One database and one login per service: the services never share data (ADR-0007).
       CLAIMS_DB_NAME: ${CLAIMS_DB_NAME:-claims}
       CLAIMS_DB_USER: ${CLAIMS_DB_USER:-claims_app}
       CLAIMS_DB_PASSWORD: ${CLAIMS_DB_PASSWORD:-local-dev-only}

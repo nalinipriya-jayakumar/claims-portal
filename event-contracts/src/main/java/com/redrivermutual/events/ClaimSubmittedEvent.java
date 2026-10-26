@@ -9,13 +9,13 @@ import java.util.UUID;
  * Published once for every committed claim. This record is the whole contract between the
  * Claims API and the Notification Service; there is no shared database and no callback.
  *
- * <p>The event is deliberately thin (ADR-005): it carries only what the confirmation email needs.
+ * <p>The event is deliberately thin (ADR-0005): it carries only what the confirmation email needs.
  * The description and full address stay in the claims database and never travel on the broker.
  *
  * <p>Compatibility rule: within a version, fields may be added but never removed or renamed.
  * Breaking changes publish a new {@link #eventVersion()} alongside the old one.
  *
- * @param eventId       unique per event; the consumer de-duplicates on it (ADR-003)
+ * @param eventId       unique per event; the consumer de-duplicates on it (ADR-0003)
  * @param correlationId the originating request's ID, for tracing across services; may be null
  */
 public record ClaimSubmittedEvent(

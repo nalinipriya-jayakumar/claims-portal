@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * If recording the event fails, the claim must not be saved either: no claim without its event
- * (NFR-03). The outbox is replaced by one that always fails, after the claim row is written.
+ * If recording the event fails, the claim must not be saved either: no claim without its event.
+ * The outbox is replaced by one that always fails, after the claim row is written.
  */
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, SubmitClaimRollbackIntegrationTest.FailingOutbox.class})

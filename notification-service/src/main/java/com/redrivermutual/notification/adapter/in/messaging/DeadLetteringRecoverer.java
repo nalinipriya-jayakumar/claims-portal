@@ -15,7 +15,7 @@ import org.springframework.amqp.rabbit.support.ListenerExecutionFailedException;
  * RabbitMQ move it to the dead-letter queue, and logs one line for operations to act on.
  *
  * <p>Replaces Spring's {@code RejectAndDontRequeueRecoverer}, whose log line includes the message
- * body, and the body carries the customer's name and email address (NFR-06).
+ * body, and the body carries the customer's name and email address.
  */
 class DeadLetteringRecoverer implements MessageRecoverer {
 

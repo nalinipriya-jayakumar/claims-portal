@@ -6,7 +6,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Decorator that runs the use case in one database transaction, so the claim, its outbox row
- * and its idempotency key commit or roll back together (NFR-03). Doing this here rather than with
+ * and its idempotency key commit or roll back together. Doing this here rather than with
  * {@code @Transactional} on the service keeps the application layer free of Spring.
  *
  * <p>Two requests with the same idempotency key at the same moment: the second one's key insert

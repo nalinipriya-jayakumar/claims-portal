@@ -94,7 +94,7 @@ public class OutboxEventEntity {
         return publishedAt;
     }
 
-    /** Used by the outbox relay in slice 3. */
+    /** Called by the outbox relay once the broker has confirmed the event. */
     public void markPublished(Instant when) {
         this.publishedAt = when;
     }

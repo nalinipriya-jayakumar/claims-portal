@@ -68,7 +68,7 @@ class OutboxRelayIntegrationTest {
     private final Binding binding = BindingBuilder.bind(queue).to(exchange)
             .with(ClaimEventsMessaging.CLAIM_SUBMITTED_ROUTING_KEY);
 
-    /** Stands in for the notification service, which owns the real queue from slice 4. */
+    /** Stands in for the notification service, which owns the real queue. */
     @BeforeEach
     void bindTestQueue() {
         amqpAdmin.declareExchange(exchange);

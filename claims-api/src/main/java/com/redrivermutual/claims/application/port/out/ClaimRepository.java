@@ -11,7 +11,7 @@ public interface ClaimRepository {
 
     /**
      * @throws DuplicateClaimNumberException if the claim number is already taken; uniqueness is
-     *         enforced by the store, not only by the generator (FR-08)
+     *         enforced by the store, not only by the generator
      */
     void save(Claim claim);
 

@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Customer-facing claim identifier in the form {@code CLM-YYYY-NNNNNN} (ADR-006).
+ * Customer-facing claim identifier in the form {@code CLM-YYYY-NNNNNN} (ADR-0006).
  */
 public record ClaimNumber(String value) {
 

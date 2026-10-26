@@ -6,9 +6,8 @@ out/
 !.mvn/wrapper/maven-wrapper.jar
 
 ### Local configuration and secrets ###
-# Machine-specific preview config used by Claude Code.
+# Local editor and assistant settings.
 .claude/launch.json
-# Local Claude Code project notes, not part of the deliverable.
 CLAUDE.md
 .env
 *.env.local
@@ -34,7 +33,7 @@ bin/
 ### VS Code ###
 .vscode/
 
-### Node (portal, slice 5) ###
+### Node (portal) ###
 node_modules/
 dist/
 
@@ -42,5 +41,5 @@ dist/
 .DS_Store
 Thumbs.db
 
-### Reference PDFs (kept local, not published) ###
+### Local reference documents ###
 docs/*.pdf

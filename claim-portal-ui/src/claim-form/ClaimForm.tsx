@@ -64,7 +64,7 @@ export function ClaimForm({ onAccepted, submit = defaultSubmitClaim, today = loc
   } = useForm<ClaimFormValues>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY_FORM,
-    // Validate a field when it loses focus, then live as the customer corrects it (FR-02).
+    // Validate a field when it loses focus, then live as the customer corrects it.
     mode: 'onTouched',
     // Focus goes to the error summary instead, which lists every problem.
     shouldFocusError: false,

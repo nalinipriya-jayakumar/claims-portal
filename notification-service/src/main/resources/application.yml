@@ -22,7 +22,7 @@ spring:
         # Retry and dead-lettering are configured in MessagingConfiguration, not by Boot.
         default-requeue-rejected: false
   mail:
-    # Mailpit locally: no authentication, no TLS. Production needs both (NFR-08).
+    # Mailpit locally: no authentication, no TLS. Production needs both.
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
     properties:

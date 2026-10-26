@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 /**
- * AC-06: with the mail server unreachable, the event is retried and then dead-lettered, and it
+ * With the mail server unreachable, the event is retried and then dead-lettered, and it
  * is not recorded as processed, so replaying it later will still send the email.
  *
  * <p>Uses its own queue, fed directly through the default exchange, so no other test context

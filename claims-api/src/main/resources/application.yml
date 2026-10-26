@@ -32,7 +32,7 @@ spring:
 
 server:
   port: ${CLAIMS_API_PORT:8080}
-  # Never leak internals in error responses (NFR-07).
+  # Never leak internals in error responses.
   error:
     include-stacktrace: never
     include-message: never

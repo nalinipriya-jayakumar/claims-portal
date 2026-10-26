@@ -12,13 +12,13 @@ import java.time.Clock;
 import java.util.List;
 
 /**
- * Moves committed events from the outbox table to the broker (ADR-002).
+ * Moves committed events from the outbox table to the broker (ADR-0002).
  *
  * <p>Each run locks a batch of unpublished rows, publishes them oldest first and marks each
  * one published, all in one transaction. On the first failure it stops, so events keep their
  * order and the rest wait for the next run. Delivery is at-least-once: if the process dies after
  * a publish but before the commit, the row is published again later, and the consumer's
- * de-duplication on event ID absorbs the repeat (ADR-003).
+ * de-duplication on event ID absorbs the repeat (ADR-0003).
  *
  * <p>Trade-off: the row locks are held while waiting for broker confirms. With small batches
  * and a local broker that is milliseconds; at higher volume, CDC (Debezium) replaces polling.

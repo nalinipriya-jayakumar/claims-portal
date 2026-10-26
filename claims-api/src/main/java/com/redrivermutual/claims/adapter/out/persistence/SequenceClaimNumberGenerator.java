@@ -9,7 +9,7 @@ import java.time.Clock;
 import java.time.Year;
 
 /**
- * Claim numbers from the {@code claim_number_seq} database sequence (ADR-006). The sequence is
+ * Claim numbers from the {@code claim_number_seq} database sequence (ADR-0006). The sequence is
  * safe under concurrency and across API replicas, and survives restarts. The year comes from
  * the configured business clock, so it matches the date the customer sees.
  */

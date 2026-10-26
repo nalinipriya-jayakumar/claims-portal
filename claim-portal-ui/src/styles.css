@@ -1,4 +1,4 @@
-/* Plain CSS with design tokens; contrast ratios meet WCAG 2.1 AA (NFR-12). */
+/* Plain CSS with design tokens; contrast ratios meet WCAG 2.1 AA. */
 :root {
   --color-text: #1f2933;
   --color-muted: #52606d;

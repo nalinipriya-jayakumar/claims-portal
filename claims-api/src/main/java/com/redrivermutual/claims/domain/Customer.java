@@ -16,7 +16,7 @@ public record Customer(String firstName, String lastName, String email, String p
         phone = (phone == null || phone.isBlank()) ? null : phone.strip();
     }
 
-    /** Never prints personal information, so a logged Customer cannot leak PII (NFR-06). */
+    /** Never prints personal information, so a logged Customer cannot leak PII. */
     @Override
     public String toString() {
         return "Customer[redacted]";

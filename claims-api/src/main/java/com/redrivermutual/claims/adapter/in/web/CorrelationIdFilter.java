@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 /**
  * Gives every request a correlation ID: the caller's {@code X-Request-Id} if it is well formed,
  * otherwise a new UUID. The ID goes into the logging MDC, the response header and every problem
- * body. Slice 3 carries it on to the ClaimSubmitted event (NFR-09).
+ * body, and is carried on to the ClaimSubmitted event.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

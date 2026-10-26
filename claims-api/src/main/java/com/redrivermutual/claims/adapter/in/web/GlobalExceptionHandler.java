@@ -32,7 +32,7 @@ import java.util.List;
 
 /**
  * Turns every failure into an RFC 9457 problem with a correlation ID. Responses never contain
- * submitted values, exception messages or stack traces (NFR-06, NFR-07).
+ * submitted values, exception messages or stack traces.
  *
  * <p>Standard Spring MVC errors such as 415 Unsupported Media Type come from the parent class;
  * {@link #handleExceptionInternal} adds the correlation ID to those as well.

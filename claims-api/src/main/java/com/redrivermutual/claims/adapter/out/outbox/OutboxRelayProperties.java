@@ -9,7 +9,7 @@ import java.time.Duration;
 
 /**
  * @param schedulingEnabled run the relay on a timer; tests switch it off and call it directly
- * @param interval          pause between relay runs; the publish lag a customer can see (ADR-002)
+ * @param interval          pause between relay runs; the publish lag a customer can see (ADR-0002)
  * @param batchSize         rows locked and published per run
  */
 @Validated

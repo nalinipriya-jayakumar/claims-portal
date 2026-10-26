@@ -19,7 +19,7 @@ public final class EmailAddresses {
         return address.strip().toLowerCase(Locale.ROOT);
     }
 
-    /** {@code jane.doe@example.com} becomes {@code j***@example.com}, for logs (NFR-06). */
+    /** {@code jane.doe@example.com} becomes {@code j***@example.com}, for logs. */
     public static String mask(String address) {
         if (address == null) {
             return "***";

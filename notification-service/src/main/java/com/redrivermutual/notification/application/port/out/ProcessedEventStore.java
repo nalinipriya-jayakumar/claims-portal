@@ -3,7 +3,7 @@ package com.redrivermutual.notification.application.port.out;
 import java.time.Instant;
 import java.util.UUID;
 
-/** Remembers which events have produced an email (idempotent consumer, ADR-003). */
+/** Remembers which events have produced an email (idempotent consumer, ADR-0003). */
 public interface ProcessedEventStore {
 
     /**

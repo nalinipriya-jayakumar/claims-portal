@@ -8,7 +8,7 @@ interface ConfirmationProps {
 
 /**
  * Shown once the API has accepted the claim. It confirms acceptance, not delivery: the email is
- * sent asynchronously by another service, so the wording says it will arrive shortly (FR-17).
+ * sent asynchronously by another service, so the wording says it will arrive shortly.
  */
 export function Confirmation({ claim, onStartAnother }: ConfirmationProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
